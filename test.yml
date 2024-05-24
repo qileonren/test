@@ -1,0 +1,42 @@
+---
+- name: Manage Tomcat Services
+  hosts: localhost
+  become: yes
+  vars:
+    tomcat_instances:
+      - tomcat9_instance_0
+      - tomcat9_instance_2
+    tomcat_script: "/opt/manage_tomcat.sh"
+
+  tasks:
+    - name: Update project using git
+      ansible.builtin.git:  # Using the 'git' module to clone or update a Git repository
+        repo: 'git@github.com:qileonren/MCCM_Automation.git'  # Git repository URL
+        dest: /path/to/your/local/repo  # Destination directory on the target machine
+        version: HEAD  # Check out the latest version
+        force: yes  # Force the update even if there are local changes
+  
+    - name: Copy manage_tomcat.sh to the target machine
+      ansible.builtin.copy:  # Using the 'copy' module to copy a file to the target machine
+        src: ./manage_tomcat.sh  # Source file on the control machine
+        dest: "{{ tomcat_script }}"  # Destination path on the target machine
+        mode: '0755'  # Set the file permissions to be executable
+
+    - name: Stop Tomcat instances
+      ansible.builtin.shell: "{{ tomcat_script }} {{ item }} stop"  # Using the 'shell' module to stop Tomcat instances
+      loop: "{{ tomcat_instances }}"  # Loop over each Tomcat instance defined in 'tomcat_instances'
+      register: stop_tomcat_result  # Register the result of the stop command
+      ignore_errors: yes  # Ignore errors to allow the playbook to continue even if stopping fails
+
+    - name: Debug stop results
+      ansible.builtin.debug:  # Using the 'debug' module to print the stop command results
+        var: stop_tomcat_result  # Variable containing the stop command results
+
+    - name: Start Tomcat instances
+      ansible.builtin.shell: "{{ tomcat_script }} {{ item }} start"  # Using the 'shell' module to start Tomcat instances
+      loop: "{{ tomcat_instances }}"  # Loop over each Tomcat instance defined in 'tomcat_instances'
+      register: start_tomcat_result  # Register the result of the start command
+
+    - name: Debug start results
+      ansible.builtin.debug:  # Using the 'debug' module to print the start command results
+        var: start_tomcat_result  # Variable containing the start command results
